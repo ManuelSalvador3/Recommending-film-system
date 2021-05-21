@@ -1,9 +1,9 @@
 import pandas as pd
 import numpy as np
-from scipy.sparse import csr_matrix
-from sklearn.neighbors import NearestNeighbors
-import matplotlib.pyplot as plt
-import seaborn as sns
+#from scipy.sparse import csr_matrix
+#from sklearn.neighbors import NearestNeighbors
+#import matplotlib.pyplot as plt
+#import seaborn as sns
 import csv, sqlite3
 import re
 
@@ -59,17 +59,22 @@ def RatingPelis(pelisVistas):
         print("Conexion establecida RatingPelis")
     else:
         print('Funciona')
-    #FUNCION DONDE VAMOS HACER LA PREDICCION DE LA PELICULA
+    # FUNCION DONDE VAMOS HACER LA PREDICCION DE LA PELICULA
     cur = con.cursor()
-    #Primer vector donde cogemos todos los ratings de la peli que queremos
-    for peli in pelisVistas:
-        cur.execute('SELECT userId, rating FROM ratings WHERE movieId = ?', [pelisVistas[int(peli)]])
+    # Primer vector donde cogemos todos los ratings de la peli que queremos
+    for i in pelisVistas:
+        pelicula = i
+        cur.execute('SELECT userId, rating FROM ratings WHERE movieId = ?', (pelicula,))
         v1 = cur.fetchall()
+        print("Para la pelicula con id: " + i)
         print(v1)
+
         print('\n')
+
 
 
 if __name__ == "__main__":
     #fill_table('links.csv', 'links', 3)
     #pelisVistas(1)
     RatingPelis(pelisVistas(1))
+
