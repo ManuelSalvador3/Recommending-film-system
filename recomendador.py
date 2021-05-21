@@ -5,13 +5,16 @@ from sklearn.neighbors import NearestNeighbors
 import matplotlib.pyplot as plt
 import seaborn as sns
 import csv, sqlite3
+import re
 
+#LLENAMOS LA TABLA
 def fill_table(file_name, table_name, n_col):
     file = open(file_name, encoding="utf8")
     rows = csv.reader(file)
     next(file)
     insert_csv_to_table(table_name, n_col, rows)
 
+#INSERTAMOS EN LA BASE DE DATOS
 def insert_csv_to_table(table_name, n_col, rows):
     con = sqlite3.connect('movies.db')
     cur = con.cursor()
@@ -27,39 +30,46 @@ def insert_csv_to_table(table_name, n_col, rows):
     con.commit()
     con.close()
 
+#Pelicules que ha visto el usuario seleccionado
+def pelisVistas(usuario):
+    con = sqlite3.connect('movies.db')
+    if con == None:
+        print("Hola")
+    else:
+        print('Funciona')
 
+    cursor = con.cursor()
+    cursor.execute('SELECT movieId FROM ratings WHERE userId = ?', str(usuario))
+    resultado = cursor.fetchall()
+    pelisVistas = []
+    for [x] in resultado:
+        var = str(x)
+        pelisVistas.append(var)
+    print(pelisVistas)  
 
+    #print(pelisVistas)
+    cursor.close()
+    con.close()
+    return pelisVistas
 
-def recomendar(usuario_id, pelicula_id):
-    #movies = pd.read_csv("movies.csv")
-    ratings = pd.read_csv("ratings.csv")
-    hola = usuario_id
-    adios = pelicula_id
-    
-    print(hola, adios)
-
-    final_dataset = ratings.pivot(index='movieId',columns='userId',values='rating')
-    final_dataset.fillna(0,inplace=True)
-    #final_dataset.head()
-
-    no_user_voted = ratings.groupby('movieId')['rating'].agg('count')
-    no_movies_voted = ratings.groupby('userId')['rating'].agg('count')
-
-    final_dataset = final_dataset.loc[no_user_voted[no_user_voted > 10].index,:]
-    final_dataset=final_dataset.loc[:,no_movies_voted[no_movies_voted > 50].index]
-    final_dataset
-
-    #item based, voy por pelis
-    peliculas = np.unique(ratings['movieId'])
-
-    ratingmedia = df.ratings.groupby(["movieId"] ).mean().rename().rename(columns = {'rating': 'rating_media'})[['movieId','rating_media']]
-    #columa de medias
-
-    rating.merge(ratings, ratingmedia)
-
-    ratings['rating_adjusted'] = ratings['rating']-ratings['rating_media']
+#Ratings de las pelis que ha visto el usuario, para calcular la similitud del coseno
+def RatingPelis(pelisVistas):
+    con = sqlite3.connect('movies.db')
+    if con == None:
+        print("Conexion establecida RatingPelis")
+    else:
+        print('Funciona')
+    #FUNCION DONDE VAMOS HACER LA PREDICCION DE LA PELICULA
+    cur = con.cursor()
+    #Primer vector donde cogemos todos los ratings de la peli que queremos
+    for peli in pelisVistas:
+        cur.execute('SELECT userId, rating FROM ratings WHERE movieId = ?', [pelisVistas[int(peli)]])
+        v1 = cur.fetchall()
+        print(v1)
+        print('\n')
 
 
 if __name__ == "__main__":
     #fill_table('links.csv', 'links', 3)
-    recomendar(0,1)
+    #pelisVistas(1)
+    RatingPelis(pelisVistas(1))
