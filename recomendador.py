@@ -7,6 +7,10 @@ import numpy as np
 import csv, sqlite3
 import re
 
+listaFinal = []
+usuarios = []
+listaCoincidencias = []
+
 #LLENAMOS LA TABLA
 def fill_table(file_name, table_name, n_col):
     file = open(file_name, encoding="utf8")
@@ -30,51 +34,136 @@ def insert_csv_to_table(table_name, n_col, rows):
     con.commit()
     con.close()
 
+def vectorInicial(pelicula):
+    con = sqlite3.connect('movies.db')
+    if con == None:
+        print("Conexión no establecida'")
+    else:
+        print('Conexión establecida')
+
+    cursor = con.cursor()
+    cursor.execute('SELECT userId FROM ratings WHERE movieId = ?', (pelicula,))
+    resultado = cursor.fetchall()
+
+    for [x] in resultado:
+        var = str(x)
+        usuarios.append(var)
+    #print("*************************")
+    #print(usuarios)
+
+    return usuarios
+
 #Pelicules que ha visto el usuario seleccionado
 def pelisVistas(usuario):
     con = sqlite3.connect('movies.db')
     if con == None:
-        print("Hola")
+        print("Conexión no establecida'")
     else:
-        print('Funciona')
+        print('Conexión establecida')
 
     cursor = con.cursor()
-    cursor.execute('SELECT movieId FROM ratings WHERE userId = ?', str(usuario))
+    cursor.execute('SELECT movieId FROM ratings WHERE userId = ?', (usuario,))
     resultado = cursor.fetchall()
     pelisVistas = []
     for [x] in resultado:
         var = str(x)
         pelisVistas.append(var)
-    print(pelisVistas)  
+    #print(pelisVistas)
 
     #print(pelisVistas)
     cursor.close()
     con.close()
     return pelisVistas
-
 #Ratings de las pelis que ha visto el usuario, para calcular la similitud del coseno
-def RatingPelis(pelisVistas):
+def ratingsUsuarioSeleccionado(usuario):
     con = sqlite3.connect('movies.db')
     if con == None:
-        print("Conexion establecida RatingPelis")
+        print("Conexión no establecida")
     else:
-        print('Funciona')
+        print("Conexión establecida")
+
+    cursor = con.cursor()
+    cursor.execute('SELECT rating FROM ratings WHERE userId = ?', str(usuario))
+    resultado = cursor.fetchall()
+    ratingsUsuario = []
+    for [x] in resultado:
+        var = str(x)
+        ratingsUsuario.append(var)
+    #print(ratingsUsuario)
+
+    cursor.close()
+    con.close()
+    return ratingsUsuario
+
+
+
+#Lista de vectores de los ratings de las peliculas que ha visto el usuario seleccionado
+def PelisVistasUsuarioSeleccionado(pelisVistas):
+    listaVectores = []
+    con = sqlite3.connect('movies.db')
+    if con == None:
+        print("Conexión no establecida")
+    else:
+        print('Conexión establecida')
     # FUNCION DONDE VAMOS HACER LA PREDICCION DE LA PELICULA
     cur = con.cursor()
     # Primer vector donde cogemos todos los ratings de la peli que queremos
     for i in pelisVistas:
         pelicula = i
-        cur.execute('SELECT userId, rating FROM ratings WHERE movieId = ?', (pelicula,))
+        #TODO PONER MOVIE ID, QUE LO HE QUITADO PARA VER SI FUNCIONA LA COMPARACION
+        cur.execute('SELECT userId FROM ratings WHERE movieId = ?', (pelicula,))
         v1 = cur.fetchall()
-        print("Para la pelicula con id: " + i)
-        print(v1)
+        # TODO QUITAR FIXEO DE CORRECION DE COMAS:
 
-        print('\n')
+        listaUsuarios = []
+        for [x] in v1:
+            var = str(x)
+            listaUsuarios.append(var)
+        #print(listaUsuarios)
+        listaVectores.append(listaUsuarios)
 
+
+
+
+
+
+
+   # Lectura por consola del vector generado
+    for a in listaVectores:
+        # print(a)
+        # print("\n")
+        listaFinal.append(a)
+   # print(listaFinal)
+    return listaFinal
+
+
+def comparandoVectores(listaFinal, usuarios):
+    for i in listaFinal:
+        check = all(item in i for item in usuarios)
+        if(check):
+            listaCoincidencias.append(i)
+
+       # print(check)
+
+    print(listaCoincidencias)
+
+
+
+
+
+
+
+    return check
 
 
 if __name__ == "__main__":
     #fill_table('links.csv', 'links', 3)
     #pelisVistas(1)
-    RatingPelis(pelisVistas(1))
+    vectorInicial(3751)
+    PelisVistasUsuarioSeleccionado(pelisVistas(414))
+    comparandoVectores(listaFinal, usuarios)
+    #ratingsUsuarioSeleccionado(1)
+
+
+
 
