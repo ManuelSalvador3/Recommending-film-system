@@ -5,12 +5,16 @@ import numpy as np
 #import matplotlib.pyplot as plt
 #import seaborn as sns
 import csv, sqlite3
+from scipy import spatial
 import re
 
 listaFinal = []
 usuarios = []
 listaCoincidencias = []
-
+listaResultadosSC = []
+posiciones = []
+listaPelis = []
+listaUsuarios = []
 #LLENAMOS LA TABLA
 def fill_table(file_name, table_name, n_col):
     file = open(file_name, encoding="utf8")
@@ -108,26 +112,23 @@ def PelisVistasUsuarioSeleccionado(pelisVistas):
     # FUNCION DONDE VAMOS HACER LA PREDICCION DE LA PELICULA
     cur = con.cursor()
     # Primer vector donde cogemos todos los ratings de la peli que queremos
+
     for i in pelisVistas:
         pelicula = i
         #TODO PONER MOVIE ID, QUE LO HE QUITADO PARA VER SI FUNCIONA LA COMPARACION
         cur.execute('SELECT userId FROM ratings WHERE movieId = ?', (pelicula,))
         v1 = cur.fetchall()
         # TODO QUITAR FIXEO DE CORRECION DE COMAS:
+        listaUsuarios.insert(i,pelicula)
 
-        listaUsuarios = []
         for [x] in v1:
             var = str(x)
+
+
             listaUsuarios.append(var)
-        #print(listaUsuarios)
+        #listaUsuarios.append(arrayPuntual)
         listaVectores.append(listaUsuarios)
-
-
-
-
-
-
-
+    print(listaUsuarios)
    # Lectura por consola del vector generado
     for a in listaVectores:
         # print(a)
@@ -142,26 +143,59 @@ def comparandoVectores(listaFinal, usuarios):
         check = all(item in i for item in usuarios)
         if(check):
             listaCoincidencias.append(i)
+            for l in enumerate(listaCoincidencias):
+                posiciones.append(l)
+    #print(posiciones)
+
+
+
 
        # print(check)
-
-    print(listaCoincidencias)
-
-
-
-
+    # for i in listaCoincidencias:
+    #     print(i)
+    #print(usuarios)
+    return listaCoincidencias, posiciones
 
 
 
-    return check
+def similitudCoseno(listaCoincidencias, usuarios, posiciones, usuarioElegido):
+    con = sqlite3.connect('movies.db')
+    if con == None:
+        print("Conexión no establecida")
+    else:
+        print("Conexión establecida")
+
+
+    cursor = con.cursor()
+    cursor.execute('SELECT rating FROM ratings WHERE userId = ?', (usuarioElegido,))
+    result = cursor.fetchall()
+
+    for [x] in result:
+        var = str(x)
+        listaPelis.append(var)
+    cursor.close()
+    con.close()
+
+    # for j in posiciones:
+    #     print(j)
+        #pelisVistas = listaPelis[posiciones[j]]
+    # for i in listaCoincidencias:
+    #     #Formula Similitud entre
+    #     #print(i)
+    #     result = 1 - spatial.distance.cosine(i,usuarios)
+    #     listaResultadosSC.append(result)
+    #print(listaResultadosSC)
+
+
 
 
 if __name__ == "__main__":
     #fill_table('links.csv', 'links', 3)
     #pelisVistas(1)
-    vectorInicial(3751)
-    PelisVistasUsuarioSeleccionado(pelisVistas(414))
-    comparandoVectores(listaFinal, usuarios)
+    vectorInicial(144976)
+    PelisVistasUsuarioSeleccionado(pelisVistas(610))
+    #comparandoVectores(listaFinal, usuarios)
+    #similitudCoseno(listaCoincidencias, usuarios, posiciones, 610)
     #ratingsUsuarioSeleccionado(1)
 
 
