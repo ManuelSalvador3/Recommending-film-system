@@ -15,6 +15,7 @@ listaResultadosSC = []
 posiciones = []
 listaPelis = []
 listaUsuarios = []
+listaPelisNoVistas = []
 #LLENAMOS LA TABLA
 def fill_table(file_name, table_name, n_col):
     file = open(file_name, encoding="utf8")
@@ -46,16 +47,14 @@ def vectorInicial(pelicula):
         print('Conexión establecida')
 
     cursor = con.cursor()
-    cursor.execute('SELECT userId FROM ratings WHERE movieId = ?', (pelicula,))
+    cursor.execute('SELECT userId, rating FROM ratings WHERE movieId = ?', (pelicula,))
     resultado = cursor.fetchall()
-
-    for [x] in resultado:
-        var = str(x)
-        usuarios.append(var)
-    #print("*************************")
-    #print(usuarios)
-
-    return usuarios
+    #Lo hacemos un especie de lista
+    for row in resultado:
+        usuarios.append(row[0])
+        usuarios.append(row[1])
+    print(usuarios)
+    return usuarios #Todos los usuarios que han visto la peli el bucle debe ir de 2 en 2 para coger todo 
 
 #Pelicules que ha visto el usuario seleccionado
 def pelisVistas(usuario):
@@ -64,16 +63,13 @@ def pelisVistas(usuario):
         print("Conexión no establecida'")
     else:
         print('Conexión establecida')
-
     cursor = con.cursor()
     cursor.execute('SELECT movieId FROM ratings WHERE userId = ?', (usuario,))
     resultado = cursor.fetchall()
     pelisVistas = []
-    for [x] in resultado:
-        var = str(x)
-        pelisVistas.append(var)
+    for row in resultado:
+        pelisVistas.append(row[0])
     #print(pelisVistas)
-
     #print(pelisVistas)
     cursor.close()
     con.close()
@@ -87,7 +83,7 @@ def ratingsUsuarioSeleccionado(usuario):
         print("Conexión establecida")
 
     cursor = con.cursor()
-    cursor.execute('SELECT rating FROM ratings WHERE userId = ?', str(usuario))
+    cursor.execute('SELECT rating FROM ratings WHERE userId = ?', (usuario,))
     resultado = cursor.fetchall()
     ratingsUsuario = []
     for [x] in resultado:
@@ -112,31 +108,20 @@ def PelisVistasUsuarioSeleccionado(pelisVistas):
     # FUNCION DONDE VAMOS HACER LA PREDICCION DE LA PELICULA
     cur = con.cursor()
     # Primer vector donde cogemos todos los ratings de la peli que queremos
-
+    userid_rating = []
+    vectores_movies_users = []
     for i in pelisVistas:
         pelicula = i
+        vectores_movies_users.append(pelicula)
         #TODO PONER MOVIE ID, QUE LO HE QUITADO PARA VER SI FUNCIONA LA COMPARACION
-        cur.execute('SELECT userId FROM ratings WHERE movieId = ?', (pelicula,))
-        v1 = cur.fetchall()
-        # TODO QUITAR FIXEO DE CORRECION DE COMAS:
-        listaUsuarios.insert(i,pelicula)
+        cur.execute('SELECT userId, rating FROM ratings WHERE movieId = ?', (pelicula,))
+        resultado = cur.fetchall()
+        for row in resultado:
+            userid_rating.append(row[0])
+            userid_rating.append(row[1])
+        
 
-        for [x] in v1:
-            var = str(x)
-
-
-            listaUsuarios.append(var)
-        #listaUsuarios.append(arrayPuntual)
-        listaVectores.append(listaUsuarios)
-    print(listaUsuarios)
-   # Lectura por consola del vector generado
-    for a in listaVectores:
-        # print(a)
-        # print("\n")
-        listaFinal.append(a)
-   # print(listaFinal)
-    return listaFinal
-
+    return "gola"
 
 def comparandoVectores(listaFinal, usuarios):
     for i in listaFinal:
@@ -158,7 +143,7 @@ def comparandoVectores(listaFinal, usuarios):
 
 
 
-def similitudCoseno(listaCoincidencias, usuarios, posiciones, usuarioElegido):
+def similitudCoseno(listaCoincidencias, usuarios, usuarioElegido):
     con = sqlite3.connect('movies.db')
     if con == None:
         print("Conexión no establecida")
@@ -192,8 +177,8 @@ def similitudCoseno(listaCoincidencias, usuarios, posiciones, usuarioElegido):
 if __name__ == "__main__":
     #fill_table('links.csv', 'links', 3)
     #pelisVistas(1)
-    vectorInicial(144976)
-    PelisVistasUsuarioSeleccionado(pelisVistas(610))
+    #vectorInicial(2)
+    PelisVistasUsuarioSeleccionado(pelisVistas(vectorInicial(2)))
     #comparandoVectores(listaFinal, usuarios)
     #similitudCoseno(listaCoincidencias, usuarios, posiciones, 610)
     #ratingsUsuarioSeleccionado(1)
