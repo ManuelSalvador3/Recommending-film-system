@@ -283,20 +283,38 @@ class Ui_MainWindow(object):
             
         else:
             print("Ha funcionado")
-            print(ordenPelisVistas)
+            #print(ordenPelisVistas)
         
+        #Similitud del coseno
+        #Por cada vector realizar el coseno de similitud entre el original y el que tenemos
+        pelis_coseno = []
+        z = 0
+        for x in iguales: 
+            #Funciona
+            similitud = 1 - spatial.distance.cosine(x, usuarios)    
+            if similitud >= -1:
+                pelis_coseno.append(ordenPelisVistas[z])
+                z+=1
+            else:
+                z +=1
+        print(pelis_coseno)
+        #print(pelis_coseno) #Cojo las pelis bien
         #Cuando son iguales ahora hay que coger las valoraciones
         #Similud del coseno
         media = 0 
-        for i in iguales:
+        denominador = 0
+        for i in pelis_coseno:
             #Da mal la consulta
             self.cursor.execute('SELECT rating FROM ratings WHERE userId = ?1 AND movieId = ?2', (usuario, i,))
             resultado = self.cursor.fetchall()
             for row in resultado:
                 ratings_usuario = row[0]
-            print(ratings_usuario)
+            #print(ratings_usuario)
             media += ratings_usuario
-            
+            denominador +=1
+        prediccion = media/denominador 
+        print(prediccion)  
+        self.resultado_prediccion.setText(str(prediccion))
         return iguales
 
     def conexionRecomendar(self):
