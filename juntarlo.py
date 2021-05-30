@@ -203,7 +203,8 @@ def similitudCoseno(listaCoincidencias, usuarios, usuarioElegido):
     #     listaResultadosSC.append(result)
     #print(listaResultadosSC)
 
-
+    def predecir(self, usuario, pelicula):
+        print("Hola")
 
 
 if __name__ == "__main__":
