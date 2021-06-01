@@ -11,6 +11,8 @@ import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QTableWidgetItem
 from scipy import spatial
+from numpy import dot
+from numpy.linalg import norm
 
 
 class Ui_MainWindow(object):
@@ -165,7 +167,7 @@ class Ui_MainWindow(object):
         self.ranking_label.setFont(font)
         self.ranking_label.setObjectName("ranking_label")
         self.resultado_prediccion = QtWidgets.QLabel(self.centralwidget)
-        self.resultado_prediccion.setGeometry(QtCore.QRect(120, 530, 231, 16))
+        self.resultado_prediccion.setGeometry(QtCore.QRect(120, 530, 431, 16))
         font = QtGui.QFont()
         font.setPointSize(12)
         font.setBold(True)
@@ -233,6 +235,8 @@ class Ui_MainWindow(object):
         resultado = self.cursor.fetchall()
         usuarios = [] #usuarios que han rateado la peli a predecir
         #Lo hacemos un especie de lista
+        self.resultado_prediccion.clear()
+        self.resultado_prediccion.setText("Calculando...")
         for row in resultado: 
             usuarios.append(row[0])
         #usuarios es el vector inicial
@@ -271,15 +275,19 @@ class Ui_MainWindow(object):
             #print(vectortemporal)
             check = all(item in vectortemporal for item in usuarios)
             if check:
-                iguales.append(vectortemporal)
+                usuarios_iguales = set(vectortemporal).intersection(usuarios)
+                #print(type(list(usuarios_iguales)))
+                vector = list(usuarios_iguales)
+                print(vector, type(vector))
+                iguales.append(vector)
                 ordenPelisVistas.append(pelisVistas[x])
                 x+=1
             else:
                 x+=1
 
         if len(iguales) == 0:
-            self.resultado_prediccion.setText('Error :(')
-            #print('No se ha encontrado ningun vector que coincida con el vector original')
+            self.resultado_prediccion.setText('Error, no hay vectores iguales')
+            return #print('No se ha encontrado ningun vector que coincida con el vector original')
             
         else:
             print("Ha funcionado")
@@ -287,15 +295,18 @@ class Ui_MainWindow(object):
         
         #Similitud del coseno
         #Por cada vector realizar el coseno de similitud entre el original y el que tenemos
-        pelis_coseno = []
+        pelis_coseno = [] #171867
         z = 0
         for x in iguales: 
             #Funciona
-            similitud = 1 - spatial.distance.cosine(x, usuarios)    
+            similitud = 1 - spatial.distance.cosine(x, usuarios) 
             if similitud >= -1:
                 pelis_coseno.append(ordenPelisVistas[z])
+                print(ordenPelisVistas[z])
                 z+=1
+                
             else:
+                print("Error en este vector")
                 z +=1
         print(pelis_coseno)
         #print(pelis_coseno) #Cojo las pelis bien
@@ -315,40 +326,146 @@ class Ui_MainWindow(object):
         prediccion = media/denominador 
         print(prediccion)  
         self.resultado_prediccion.setText(str(prediccion))
-        return iguales
+        return iguales 
 
-    def conexionRecomendar(self):
-        print("Recomendar")
-        ranking = self.Items_ranking_textEdit.toPlainText()
-        usuario = str(self.comboBox_Usuario1.currentText())
-        umbral = self.umbral_similitud_textEdit.toPlainText()
-        print(usuario, ranking, umbral)
-        self.recomendar(usuario, ranking, umbral)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def recomendar(self):
         ranking = self.Items_ranking_textEdit.toPlainText()
         usuario = str(self.comboBox_Usuario1.currentText())
         umbral = self.umbral_similitud_textEdit.toPlainText()
-        print('llego')
-        print(usuario, ranking, umbral)
-        self.cursor.execute('SELECT movieId FROM ratings WHERE userid != ?', (usuario,))
-        resultado = self.cursor.fetchall()
-        idpelicula = []
-        for row in resultado:
-            idpelicula.append(row[0])
-        # #print(idpelicula)
+        
+        # print(usuario, ranking, umbral)
+        umbral = float(umbral)
+        umbral = int(umbral)
+        print(type(umbral))
+        #Insertamos las filas necesarias
         x = 0
-        print(len(ranking))
-        while x <= len(ranking):
+        self.tableWidget.clear()
+        while x < int(ranking): #Funciona
             rowPosition = self.tableWidget.rowCount()
             self.tableWidget.insertRow(rowPosition)
             x+=1
-        y = 0
-        while y <= len(ranking): #Rows x en 2
-            print(idpelicula[y])
-            #self.tableWidget.setItem(y, 0, QtGui.QTableWidgetItem(idpelicula[y]))
-            y=y+1
+     
+        pelisVistas = [] #Pelis que ha visto el usuario
+        self.cursor.execute('SELECT movieId FROM ratings WHERE userId = ?', (usuario,)) #Todas las pelis que ha visto el usuario las cuales podemos reocmendar
+        result = self.cursor.fetchall()
+        for row in result:
+            pelisVistas.append(row[0])
+        #print(pelisVistas) #FUNCIONA
+        
+        #Pelis que no ha visto el usuario
+        self.cursor.execute('SELECT DISTINCT movieId FROM movies WHERE movieId not in (SELECT movieId from ratings WHERE userId = ?)', (usuario,))
+        result = self.cursor.fetchall()
+        pelisNoVistas = []
+        for row in result:
+            pelisNoVistas.append(row[0])
+        #print(pelisNoVistas) #Funciona
+        for x in pelisNoVistas: #Por cada peli que el usuario no ha visto
+            vector_inicial = []
+            print("Por cada peli que el usuario no ha visto")
+            self.cursor.execute('SELECT userId FROM ratings WHERE movieId = ?', (x,)) #Vector de la peli
+            resultado = self.cursor.fetchall()
+            for row in resultado:
+                vector_inicial.append(row[0]) #usuario que han rateado la primera peli
+            #print(vector_inicial)
 
+            #Todos los vectores de las peliculas
+            vectoresUsuarioRating = self.vectorPelisNoVistas(pelisNoVistas) #Sacar el vector del resto de las pelis vistas
+            #print(vectoresUsuarioRating)
+            iguales, ordenPelisVistas = self.compararVectores(vectoresUsuarioRating, vector_inicial, pelisVistas) #Retornamos los vectores iguales y los ids de las pelis 
+            #print(iguales) #Vectores que han dado igual
+             #Id de las peliculas que han tenido el vector igual
+
+            
+            print(ordenPelisVistas)
+            if len(iguales) == 0:
+                print("Esta peli no tiene vectores iguales, pasamos a la siguiente")
+            else:
+                print("Entro a calcular el coseno")
+                pelis_coseno = []
+                y = 0
+                for vector in iguales: 
+                    similitud = 1 - spatial.distance.cosine(vector, vector_inicial)
+                    print(similitud)
+                    if similitud >= umbral:
+                        pelis_coseno.append(ordenPelisVistas[y])
+                        y+=1
+                    else:
+                        y+=1
+                numerador = 0 
+                denominador = 0
+                peli_rating = []
+                lista_predicciones = []
+                for i in pelis_coseno:
+                    #Da mal la consulta
+                    self.cursor.execute('SELECT rating FROM ratings WHERE userId = ?1 AND movieId = ?2', (usuario, i,))
+                    resultado = self.cursor.fetchall()
+                    for row in resultado:
+                        ratings_usuario = row[0]
+                    #print(ratings_usuario)
+                    numerador += ratings_usuario
+                    denominador +=1
+                prediccion = numerador/denominador
+                print(prediccion)
+                lista_predicciones.append(prediccion) #Me guardo todas las predicciones realizadas
+                peli_rating.append(x)
+                #print(lista_predicciones)
+        print(lista_predicciones)
+            #Comparar todos los ratings 
+
+
+    def vectorPelisNoVistas(self, pelisNoVistas):
+        vectoresUsuarioRating = []
+        print("Entro en la funcion para sacar los vectores de las pelis")
+        for y in pelisNoVistas:
+            userid_vectores = [] #Almacena los ususarios id de todos los vectores
+            #Sacamos todos los usuarios que han dado rating a cada pelio que ha visto el usuario
+            self.cursor.execute('SELECT userId FROM ratings WHERE movieId = ?', (y,))
+            resultado = self.cursor.fetchall()
+            for row in resultado:
+                userid_vectores.append(row[0]) #Insertamos userId
+            vectoresUsuarioRating.append(userid_vectores) #FUNCIONA CORRECTAMENTE
+            #Ya tengo todos los vectores
+        print("Llego al final de la funcion")
+        #print(vectoresUsuarioRating)
+        return vectoresUsuarioRating
+
+    def compararVectores(self, vectoresUsuarioRating, vector_inicial, pelisVistas):
+        ordenPelisVistas = []
+        iguales = []
+        z = 0
+        for i in vectoresUsuarioRating: 
+            check = all(item in i for item in vector_inicial)
+            if check:
+                usuarios_iguales = set(i).intersection(vector_inicial)
+                vector = list(usuarios_iguales)
+                #print(vector, type(vector))
+                iguales.append(vector)
+                ordenPelisVistas.append(pelisVistas[z])
+                z+=1
+            else:
+                z+=1
+        print(ordenPelisVistas)
+        return iguales, ordenPelisVistas
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
